@@ -1,0 +1,21 @@
+from flask import Flask, request
+from celery import Celery
+import emails
+
+app = Flask(__name__)
+celery = Celery('tasks', broker='amqp://guest@localhost//')
+
+@celery.task
+def send_email(to, subject, body):
+    emails.send(to=to, subject=subject, body=body)
+
+@app.route('/?sendmail=<string:email>')
+def send_mail(email):
+    send_email.delay(email, 'Test Subject', 'Test Body')
+    return 'Email sent!'
+
+@app.route('/?talktome')
+def log_time():
+    with open('/var/log/messaging_system.log', 'a') as f:
+        f.write(f'{datetime.now()}\n')
+    return 'Logged!'
